@@ -1,0 +1,9 @@
+class hacking:
+    def bryan:
+        return 0
+    def natalia:
+        return 0
+    def eugenia:
+        return 0
+    def daniel:
+        return 0
