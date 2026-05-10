@@ -14,7 +14,7 @@ if not api_key:
 
 # Initialize Client
 client = genai.Client(api_key=api_key)
-MODEL_ID = "gemini-2.0-flash" 
+MODEL_ID = "models/gemini-2.5-flash"
 
 def run_maroon_matcher():
     print("\n" + "="*45)
@@ -33,14 +33,46 @@ def run_maroon_matcher():
         "vibe": vibe
     }
 
-    # 3. READ RSO DATA
+    # 3. READ + FILTER RSO DATA
     print("\n[System] Parsing UChicago RSO Directory...")
+
     try:
         df = pd.read_csv("UChicago_RSO_Directory.csv")
-        rso_summary = df[['RSO Name', 'Category', 'Description', 'Blueprint URL']].to_string(index=False)
+
+        # Combine searchable text
+        df["search_blob"] = (
+            df["RSO Name"].fillna('') + " " +
+            df["Category"].fillna('') + " " +
+            df["Description"].fillna('')
+        )
+
+        # User keywords
+        keywords = f"{interests} {goals} {vibe}".lower().split()
+
+        # Simple scoring system
+        def score_rso(text):
+            text = str(text).lower()
+            return sum(keyword in text for keyword in keywords)
+
+        df["match_score"] = df["search_blob"].apply(score_rso)
+
+        # Keep best matches only
+        filtered_df = df.sort_values(
+            by="match_score",
+            ascending=False
+        ).head(30)
+
+        # Convert smaller subset to text
+        rso_summary = filtered_df[
+            ['RSO Name', 'Category', 'Description', 'Blueprint URL']
+        ].to_string(index=False)
+
+        print(f"[System] Reduced directory from {len(df)} -> {len(filtered_df)} RSOs")
+
     except FileNotFoundError:
-        print("Error: UChicago_RSO_Directory.csv not found in this directory!")
+        print("Error: UChicago_RSO_Directory.csv not found!")
         return
+
     except Exception as e:
         print(f"Error loading CSV: {e}")
         return

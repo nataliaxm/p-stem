@@ -1,4 +1,7 @@
 # p-stem
 Public hackathon repo for ALI builds
 
-export GEMINI_API_KEY='AIzaSyB5VG9chjYcl7eSlrl0NIPOPz0sgYqRU60'
+# Ensure you run 'export GEMINI_API_KEY=your_key' in your terminal first
+export GEMINI_API_KEY='AIzaSyCgnk-4hHUQRQIiz94mKWEGNZlLnKA1Vn4'
+
+source venv/bin/activate
