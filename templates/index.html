@@ -11,12 +11,12 @@
       --maroon:       #800000;
       --maroon-dark:  #5a0000;
       --maroon-light: #9c1515;
-      --maroon-glow:  rgba(128, 0, 0, 0.15);
-      --bg:           #f4f4f6;
+      --bg:           #f8f7f4;
       --card:         #ffffff;
       --text:         #1a1a1a;
-      --muted:        #6b7280;
-      --border:       #e5e7eb;
+      --muted:        #767676;
+      --border:       #d6d6ce;
+      --tag-bg:       #edece8;
       --shadow-sm:    0 1px 6px rgba(0,0,0,0.06);
       --shadow-md:    0 4px 20px rgba(0,0,0,0.10);
       --shadow-lg:    0 8px 40px rgba(0,0,0,0.14);
@@ -60,7 +60,7 @@
       align-items: center;
       justify-content: center;
       font-size: 40px;
-      box-shadow: 0 0 0 14px var(--maroon-glow);
+      box-shadow: var(--shadow-sm);
     }
 
     #welcome h1 {
@@ -86,11 +86,11 @@
       font-size: 1rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 18px rgba(128,0,0,0.35);
-      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: var(--shadow-sm);
+      transition: background 0.2s, transform 0.15s;
       letter-spacing: 0.01em;
     }
-    .btn-start:hover  { background: var(--maroon-light); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(128,0,0,0.45); }
+    .btn-start:hover  { background: var(--maroon-light); transform: translateY(-2px); }
     .btn-start:active { transform: translateY(0); }
 
     /* ── Quiz ────────────────────────────────────────────────── */
@@ -168,7 +168,7 @@
       transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.13s;
       color: var(--text);
     }
-    .btn-yn.yes:hover { border-color: var(--maroon); background: var(--maroon-glow); color: var(--maroon); }
+    .btn-yn.yes:hover { border-color: var(--maroon); background: #fdf5f5; color: var(--maroon); }
     .btn-yn.no:hover  { border-color: #9ca3af; background: #f9fafb; }
     .btn-yn:active    { transform: scale(0.96); }
 
@@ -277,10 +277,53 @@
       font-weight: 600;
       padding: 3px 10px;
       border-radius: 50px;
-      background: var(--maroon-glow);
+      background: var(--tag-bg);
       color: var(--maroon);
       text-transform: capitalize;
     }
+
+    .mention-section {
+      width: 100%;
+      max-width: 920px;
+      margin-top: 40px;
+    }
+
+    .mention-divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .mention-divider::before,
+    .mention-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .mention-divider span {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .mention-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .rso-card.mention {
+      padding: 18px 20px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+    .rso-card.mention .rso-name { font-size: 0.92rem; }
+    .rso-card.mention .rso-desc { font-size: 0.82rem; }
 
     .btn-restart {
       margin-top: 40px;
@@ -472,29 +515,53 @@
   }
 
   // ── Results ────────────────────────────────────────────────
+  function makeCard(rso, index, extraClass = '') {
+    const card = document.createElement('div');
+    card.className = 'rso-card' + (extraClass ? ' ' + extraClass : '');
+    card.style.animationDelay = `${index * 55}ms`;
+    card.innerHTML = `
+      <div class="rso-name">${rso.name}</div>
+      <div class="rso-desc">${rso.description}</div>
+      <div class="tag-row">
+        ${rso.tags.map(t => `<span class="tag">${t.replace(/_/g,' ')}</span>`).join('')}
+      </div>`;
+    return card;
+  }
+
   function showResults() {
     const grid = document.getElementById('rso-grid');
     grid.innerHTML = '';
 
-    const matches = RSOS.filter(r => r.tags.some(t => tags.has(t)));
-    const list    = matches.length ? matches : RSOS.slice(0, 6);
+    // Remove any previous honorable mentions section
+    const prev = document.getElementById('mention-section');
+    if (prev) prev.remove();
 
-    document.getElementById('results-sub').textContent = matches.length
-      ? `We found ${matches.length} RSO${matches.length !== 1 ? 's' : ''} matching your interests.`
+    // Sort matches by number of overlapping tags (most relevant first)
+    const scored = RSOS
+      .map(r => ({ ...r, score: r.tags.filter(t => tags.has(t)).length }))
+      .filter(r => r.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    const top      = scored.length ? scored.slice(0, 5) : RSOS.slice(0, 5);
+    const mentions = scored.slice(5);
+
+    document.getElementById('results-sub').textContent = scored.length
+      ? `Your top ${top.length} match${top.length !== 1 ? 'es' : ''} out of ${scored.length} RSO${scored.length !== 1 ? 's' : ''} found.`
       : 'Here are some popular RSOs to explore.';
 
-    list.forEach((rso, i) => {
-      const card = document.createElement('div');
-      card.className = 'rso-card';
-      card.style.animationDelay = `${i * 55}ms`;
-      card.innerHTML = `
-        <div class="rso-name">${rso.name}</div>
-        <div class="rso-desc">${rso.description}</div>
-        <div class="tag-row">
-          ${rso.tags.map(t => `<span class="tag">${t.replace(/_/g,' ')}</span>`).join('')}
-        </div>`;
-      grid.appendChild(card);
-    });
+    top.forEach((rso, i) => grid.appendChild(makeCard(rso, i)));
+
+    if (mentions.length) {
+      const section = document.createElement('div');
+      section.className = 'mention-section';
+      section.id = 'mention-section';
+      section.innerHTML = `
+        <div class="mention-divider"><span>Honorable Mentions</span></div>
+        <div class="mention-grid"></div>`;
+      const mentionGrid = section.querySelector('.mention-grid');
+      mentions.forEach((rso, i) => mentionGrid.appendChild(makeCard(rso, i, 'mention')));
+      document.getElementById('results').insertBefore(section, document.querySelector('.btn-restart'));
+    }
 
     show('results');
   }
