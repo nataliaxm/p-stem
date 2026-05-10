@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UChicago RSO Finder</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --maroon:       #800000;
+      --maroon-dark:  #5a0000;
+      --maroon-light: #9c1515;
+      --maroon-glow:  rgba(128, 0, 0, 0.15);
+      --bg:           #f4f4f6;
+      --card:         #ffffff;
+      --text:         #1a1a1a;
+      --muted:        #6b7280;
+      --border:       #e5e7eb;
+      --shadow-sm:    0 1px 6px rgba(0,0,0,0.06);
+      --shadow-md:    0 4px 20px rgba(0,0,0,0.10);
+      --shadow-lg:    0 8px 40px rgba(0,0,0,0.14);
+      --radius:       18px;
+      --radius-sm:    10px;
+      --ease-out:     cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+
+    /* ── Screens ─────────────────────────────────────────────── */
+    .screen { display: none; width: 100%; }
+    .screen.active { display: flex; }
+
+    /* ── Welcome ─────────────────────────────────────────────── */
+    #welcome {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 28px;
+      text-align: center;
+      padding: 32px 24px;
+      animation: fadeIn 0.5s var(--ease-out);
+    }
+
+    .logo-ring {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: var(--maroon);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      box-shadow: 0 0 0 14px var(--maroon-glow);
+    }
+
+    #welcome h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--maroon);
+      letter-spacing: -0.02em;
+    }
+
+    #welcome p {
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.65;
+      max-width: 380px;
+    }
+
+    .btn-start {
+      background: var(--maroon);
+      color: #fff;
+      border: none;
+      padding: 16px 44px;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(128,0,0,0.35);
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      letter-spacing: 0.01em;
+    }
+    .btn-start:hover  { background: var(--maroon-light); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(128,0,0,0.45); }
+    .btn-start:active { transform: translateY(0); }
+
+    /* ── Quiz ────────────────────────────────────────────────── */
+    #quiz {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 24px;
+    }
+
+    .quiz-inner {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Progress */
+    .progress-track {
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--maroon);
+      border-radius: 3px;
+      transition: width 0.55s var(--ease-out);
+      width: 0%;
+    }
+
+    /* Card */
+    #card-wrapper { position: relative; }
+
+    .question-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .q-meta {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--maroon);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .q-text {
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.4;
+      letter-spacing: -0.01em;
+    }
+
+    /* Yes / No */
+    .yesno-row { display: flex; gap: 12px; }
+
+    .btn-yn {
+      flex: 1;
+      padding: 18px 12px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+      background: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.13s;
+      color: var(--text);
+    }
+    .btn-yn.yes:hover { border-color: var(--maroon); background: var(--maroon-glow); color: var(--maroon); }
+    .btn-yn.no:hover  { border-color: #9ca3af; background: #f9fafb; }
+    .btn-yn:active    { transform: scale(0.96); }
+
+    /* Multi-choice */
+    .hint {
+      font-size: 0.83rem;
+      color: var(--muted);
+      margin-top: -12px;
+    }
+
+    .chip-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    .chip {
+      padding: 10px 20px;
+      border-radius: 50px;
+      border: 2px solid var(--border);
+      background: #fff;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
+      user-select: none;
+    }
+    .chip:hover           { border-color: var(--maroon); color: var(--maroon); }
+    .chip.selected        { background: var(--maroon); border-color: var(--maroon); color: #fff; }
+    .chip:active          { transform: scale(0.95); }
+
+    .btn-continue {
+      align-self: flex-end;
+      background: var(--maroon);
+      color: #fff;
+      border: none;
+      padding: 14px 30px;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.18s, transform 0.13s;
+    }
+    .btn-continue:hover  { background: var(--maroon-light); transform: translateY(-1px); }
+    .btn-continue:active { transform: translateY(0); }
+
+    /* Card animations */
+    @keyframes slideInRight {
+      from { transform: translateX(56px); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    @keyframes slideOutLeft {
+      from { transform: translateX(0);     opacity: 1; }
+      to   { transform: translateX(-56px); opacity: 0; }
+    }
+    .slide-in  { animation: slideInRight 0.32s var(--ease-out) forwards; }
+    .slide-out { animation: slideOutLeft 0.24s var(--ease-out) forwards; }
+
+    /* ── Results ─────────────────────────────────────────────── */
+    #results {
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px 64px;
+      min-height: 100vh;
+    }
+
+    .results-header {
+      text-align: center;
+      margin-bottom: 36px;
+      animation: fadeIn 0.4s var(--ease-out);
+    }
+    .results-header h2 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--maroon);
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .results-header p { color: var(--muted); font-size: 1rem; }
+
+    .rso-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 920px;
+    }
+
+    .rso-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      opacity: 0;
+      animation: fadeUp 0.4s var(--ease-out) forwards;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .rso-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+
+    .rso-name { font-weight: 700; font-size: 1rem; }
+    .rso-desc { font-size: 0.87rem; color: var(--muted); line-height: 1.55; flex: 1; }
+
+    .tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 50px;
+      background: var(--maroon-glow);
+      color: var(--maroon);
+      text-transform: capitalize;
+    }
+
+    .btn-restart {
+      margin-top: 40px;
+      background: transparent;
+      border: 2px solid var(--maroon);
+      color: var(--maroon);
+      padding: 13px 32px;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-restart:hover { background: var(--maroon); color: #fff; }
+
+    /* ── Shared animations ───────────────────────────────────── */
+    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeUp  {
+      from { transform: translateY(18px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Welcome -->
+<div id="welcome" class="screen active">
+  <div class="logo-ring">🎓</div>
+  <h1>UChicago RSO Finder</h1>
+  <p>Answer a few questions and we'll match you with student organizations that fit your interests.</p>
+  <button class="btn-start" onclick="startQuiz()">Get Started →</button>
+</div>
+
+<!-- Quiz -->
+<div id="quiz" class="screen">
+  <div class="quiz-inner">
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div id="card-wrapper"></div>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="results" class="screen">
+  <div class="results-header">
+    <h2>Your RSO Matches</h2>
+    <p id="results-sub"></p>
+  </div>
+  <div class="rso-grid" id="rso-grid"></div>
+  <button class="btn-restart" onclick="startQuiz()">Start Over</button>
+</div>
+
+<script>
+  // ── Data (fetched from Flask) ───────────────────────────────
+  let QUESTIONS = [];
+  let RSOS = [];
+
+  // ── State ──────────────────────────────────────────────────
+  const TOP_LEVEL = ['academic','cultural','sports','arts','service','gov','spiritual'];
+  const FOLLOWUP  = {
+    academic: 'academic_detail',
+    cultural: 'cultural_detail',
+    sports:   'sports_detail',
+    arts:     'arts_detail',
+    spiritual:'spiritual_detail',
+  };
+
+  let queue   = [];
+  let qIdx    = 0;
+  let tags    = new Set();
+  let tlDone  = 0;   // top-level questions answered
+
+  function getQ(id) { return QUESTIONS.find(q => q.id === id); }
+
+  // ── Screens ────────────────────────────────────────────────
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ── Bootstrap ──────────────────────────────────────────────
+  async function init() {
+    const res  = await fetch('/api/data');
+    const data = await res.json();
+    QUESTIONS  = data.questions;
+    RSOS       = data.rsos;
+  }
+
+  function startQuiz() {
+    queue  = [...TOP_LEVEL];
+    qIdx   = 0;
+    tags   = new Set();
+    tlDone = 0;
+    document.getElementById('progress-fill').style.width = '0%';
+    show('quiz');
+    render(qIdx);
+  }
+
+  // ── Progress ───────────────────────────────────────────────
+  function updateProgress() {
+    document.getElementById('progress-fill').style.width =
+      (tlDone / TOP_LEVEL.length * 100) + '%';
+  }
+
+  // ── Rendering ──────────────────────────────────────────────
+  function render(idx) {
+    const q = getQ(queue[idx]);
+    if (!q) { showResults(); return; }
+
+    const isTop = TOP_LEVEL.includes(q.id);
+    const meta  = isTop
+      ? `Question ${tlDone + 1} of ${TOP_LEVEL.length}`
+      : 'Follow-up';
+
+    const card = document.createElement('div');
+    card.className = 'question-card slide-in';
+    card.innerHTML = `
+      <div>
+        <div class="q-meta">${meta}</div>
+        <div class="q-text">${q.text}</div>
+      </div>
+      ${q.type === 'yesno' ? buildYesNo(q.id) : buildMulti(q)}
+    `;
+
+    if (q.type === 'multichoice') {
+      card.querySelectorAll('.chip').forEach(chip =>
+        chip.addEventListener('click', () => chip.classList.toggle('selected'))
+      );
+      card.querySelector('.btn-continue').addEventListener('click', () => submitMulti(q.id));
+    }
+
+    const wrapper = document.getElementById('card-wrapper');
+    wrapper.innerHTML = '';
+    wrapper.appendChild(card);
+  }
+
+  function buildYesNo(qid) {
+    return `
+      <div class="yesno-row">
+        <button class="btn-yn yes" onclick="submitYN('${qid}', true)">Yes</button>
+        <button class="btn-yn no"  onclick="submitYN('${qid}', false)">No</button>
+      </div>`;
+  }
+
+  function buildMulti(q) {
+    const chips = q.choices.map(c =>
+      `<div class="chip" data-id="${c.id}">${c.label}</div>`
+    ).join('');
+    return `
+      <p class="hint">Select all that apply</p>
+      <div class="chip-grid">${chips}</div>
+      <button class="btn-continue">Continue →</button>`;
+  }
+
+  // ── Answer handlers ────────────────────────────────────────
+  function submitYN(qid, yes) {
+    if (TOP_LEVEL.includes(qid)) {
+      tlDone++;
+      updateProgress();
+      if (yes && FOLLOWUP[qid]) {
+        queue.splice(qIdx + 1, 0, FOLLOWUP[qid]);
+      }
+      // service / gov have no followup — tag directly
+      if (yes && !FOLLOWUP[qid]) {
+        tags.add(qid);
+      }
+    }
+    advance();
+  }
+
+  function submitMulti(qid) {
+    document.querySelectorAll('.chip.selected').forEach(c => tags.add(c.dataset.id));
+    advance();
+  }
+
+  function advance() {
+    const wrapper = document.getElementById('card-wrapper');
+    const old = wrapper.querySelector('.question-card');
+    if (old) {
+      old.classList.remove('slide-in');
+      old.classList.add('slide-out');
+      setTimeout(() => {
+        qIdx++;
+        if (qIdx >= queue.length) showResults();
+        else render(qIdx);
+      }, 230);
+    }
+  }
+
+  // ── Results ────────────────────────────────────────────────
+  function showResults() {
+    const grid = document.getElementById('rso-grid');
+    grid.innerHTML = '';
+
+    const matches = RSOS.filter(r => r.tags.some(t => tags.has(t)));
+    const list    = matches.length ? matches : RSOS.slice(0, 6);
+
+    document.getElementById('results-sub').textContent = matches.length
+      ? `We found ${matches.length} RSO${matches.length !== 1 ? 's' : ''} matching your interests.`
+      : 'Here are some popular RSOs to explore.';
+
+    list.forEach((rso, i) => {
+      const card = document.createElement('div');
+      card.className = 'rso-card';
+      card.style.animationDelay = `${i * 55}ms`;
+      card.innerHTML = `
+        <div class="rso-name">${rso.name}</div>
+        <div class="rso-desc">${rso.description}</div>
+        <div class="tag-row">
+          ${rso.tags.map(t => `<span class="tag">${t.replace(/_/g,' ')}</span>`).join('')}
+        </div>`;
+      grid.appendChild(card);
+    });
+
+    show('results');
+  }
+
+  init();
+</script>
+</body>
+</html>
